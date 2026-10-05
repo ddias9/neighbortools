@@ -1,0 +1,3 @@
+# Only needed for the hosted (Vercel) version. Running locally needs nothing installed.
+pg8000
+tzdata
