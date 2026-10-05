@@ -654,7 +654,7 @@ class Handler(BaseHTTPRequestHandler):
                     with db_lock:
                         result = run_in_transaction(handler, method, parse_qs(url.query), body, match.groups())
                     return self.send_json(200, result)
-            raise ApiError(404, "Unknown API endpoint.")
+            raise ApiError(404, f"Unknown API endpoint: {method} {url.path}")
         except ApiError as err:
             self.send_json(err.status, {"error": err.message, "errors": err.errors})
         except Exception:
