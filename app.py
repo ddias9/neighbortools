@@ -20,7 +20,7 @@ import traceback
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from sample_data import OWNERS, PARTICIPANTS, RESEARCH_QUESTION, SAMPLE_TOOLS
 
@@ -602,6 +602,19 @@ ROUTES = [
 ]
 
 
+def restore_vercel_path(path):
+    """On Vercel every request arrives as /api/index?__path=/original/path&... (see vercel.json).
+    Return the address the visitor actually used; other paths pass through unchanged."""
+    url = urlparse(path)
+    if url.path.rstrip("/") != "/api/index":
+        return path
+    query = parse_qs(url.query, keep_blank_values=True)
+    original = query.pop("__path", ["/"])[0] or "/"
+    if not original.startswith("/"):
+        original = "/" + original
+    return original + ("?" + urlencode(query, doseq=True) if query else "")
+
+
 def run_in_transaction(handler, method, query, body, groups):
     """Run one API call all-or-nothing.
 
@@ -641,7 +654,7 @@ class Handler(BaseHTTPRequestHandler):
         self.handle_any("PUT")
 
     def handle_any(self, method):
-        url = urlparse(self.path)
+        url = urlparse(restore_vercel_path(self.path))
         if not url.path.startswith("/api/"):
             if method == "GET":
                 return self.serve_file(url.path)
